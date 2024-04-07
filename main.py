@@ -1,15 +1,23 @@
 import asyncio
 import logging
 import sys
-from config import TOKEN
+
+
+from config import TOKEN, storage
 from aiogram import Bot, Dispatcher
 from aiogram.types import BotCommand
+
 from handlers import order, calc, main_menu, about, orderlist, feedback
+
+
+# async def on_startup(_):
+# await db.db_start()
 
 
 async def main():
     bot = Bot(token=TOKEN)
-    dp = Dispatcher()
+
+    dp = Dispatcher(storage=storage)
     dp.include_routers(main_menu.router, order.router, calc.router, about.router, orderlist.router, feedback.router)
     main_commands = [
         BotCommand(command="/start", description="Перезапустить бота"),
@@ -20,7 +28,8 @@ async def main():
         BotCommand(command="/my_orders", description="Мои заказы"),
     ]
     await bot.set_my_commands(main_commands)
-    await dp.start_polling(bot)
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)  # on_startup=on_startup)
 
 
 if __name__ == "__main__":

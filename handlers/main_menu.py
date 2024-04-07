@@ -10,7 +10,7 @@ from aiogram.types import (
 )
 
 from states import Form
-
+from db import database as db
 
 router = Router()
 
@@ -18,6 +18,11 @@ router = Router()
 @router.message(Command("start"))
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     await state.set_state(Form.main_menu)
+    if message.from_user.username:
+        username = f'@{message.from_user.username}'
+    else:
+        username = message.from_user.first_name
+    await db.cmd_start_db(message.from_user.id, username)
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(text="Новый заказ", callback_data="toArticle"),
