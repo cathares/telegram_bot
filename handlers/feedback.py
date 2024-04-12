@@ -21,7 +21,7 @@ async def about_command_handler(callback: CallbackQuery, state: FSMContext) -> N
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text="Оставить сообщение",
+            text="Оставить заявку",
             callback_data="toMessage"
         )
     )
@@ -50,7 +50,7 @@ async def about_command_handler(message: Message, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text="Оставить сообщение",
+            text="Оставить заявку",
             callback_data="toMessage"
         )
     )

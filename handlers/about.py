@@ -30,7 +30,7 @@ async def about_command_handler(message: Message, state: FSMContext) -> None:
             callback_data="toReviews"
         ),
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toStart"
         )
     )
@@ -60,7 +60,7 @@ async def about_command_handler(callback: CallbackQuery, state: FSMContext) -> N
             callback_data="toReviews"
         ),
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toStart"
         )
     )
@@ -77,7 +77,7 @@ async def FAQ_handler(callback: CallbackQuery, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toAbout"
         )
     )
@@ -93,7 +93,7 @@ async def partners_handler(callback: CallbackQuery, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toAbout"
         )
     )
@@ -110,7 +110,7 @@ async def partners_handler(callback: CallbackQuery, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toAbout"
         )
     )

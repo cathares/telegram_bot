@@ -23,7 +23,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toStart"
         )
     )
@@ -39,7 +39,7 @@ async def back_to_calc_callback(callback: types.CallbackQuery, state: FSMContext
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toStart"
         )
     )
@@ -56,7 +56,7 @@ async def delivery_handler(message: Message, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toCalc"
         )
     )
