@@ -2,21 +2,19 @@ import asyncio
 import logging
 import sys
 
-from config import TOKEN
-from aiogram import Bot, Dispatcher
+from aiogram import Dispatcher
 from aiogram.types import BotCommand
 
-from handlers import order, calc, main_menu, about, orderlist, feedback, admin
+from handlers import order, calc, main_menu, about, orderlist, feedback, admin, settings
 
 # async def on_startup(_):
 # await db.db_start()
-
-bot = Bot(token=TOKEN)
+from start_bot import bot
 
 
 async def main():
     dp = Dispatcher()
-    dp.include_routers(main_menu.router, order.router, calc.router, about.router, orderlist.router, feedback.router, admin.router)
+    dp.include_routers(main_menu.router, order.router, calc.router, about.router, orderlist.router, feedback.router, admin.router, settings.router)
     main_commands = [
         BotCommand(command="/start", description="Перезапустить бота"),
         BotCommand(command="/new_order", description="Оформить заказ"),

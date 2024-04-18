@@ -8,7 +8,7 @@ from aiogram.types import (
 )
 import emoji
 from db.database import db
-from main import bot
+from start_bot import bot
 from states import Form
 
 router = Router()
@@ -34,7 +34,7 @@ async def new_order_handler(message: Message, state: FSMContext) -> None:
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Назад"),
+            text=emoji.emojize("⬅Назад"),
             callback_data="toStart"
         )
     )
@@ -345,7 +345,6 @@ async def accept(callback: types.CallbackQuery, state: FSMContext):
     db.commit()
     num = cur.execute(f"SELECT order_id FROM orders WHERE user_id == {callback.from_user.id} ORDER BY order_id DESC").fetchone()[0]
     cur.close()
-
     builder = InlineKeyboardBuilder()
     builder.add(
         InlineKeyboardButton(
@@ -360,11 +359,15 @@ async def accept(callback: types.CallbackQuery, state: FSMContext):
             callback_data=f"admin_order_{num}"
         )
     )
+    if callback.from_user.username is not None:
+        username = '@' + callback.from_user.username
+    else:
+        username = callback.from_user.first_name
     await bot.send_message(
         chat_id=-4168941250,
         text=emoji.emojize(f"<b>Поступил новый заказ:</b>"
                            f"\nНомер заказа: {num}\n"
-                           f"Имя пользователя: @{callback.from_user.username}"
+                           f"Имя пользователя: {username}"
                            f"\n🛒Артикул: {current_orders[callback.from_user.id]['article']} "
                            f"\n📐Размер:"f" {current_orders[callback.from_user.id]['size']}"
                            f"\n👥ФИО:"f" {current_orders[callback.from_user.id]['name']}"
@@ -379,6 +382,7 @@ async def accept(callback: types.CallbackQuery, state: FSMContext):
         emoji.emojize(":check_mark_button:Заказ подтвержден!"),
         reply_markup=builder.as_markup()
     )
+    current_orders.pop(callback.from_user.id)
     await callback.answer()
 
 
@@ -396,4 +400,5 @@ async def cancel(callback: types.CallbackQuery, state: FSMContext):
         text=emoji.emojize("Заказ отменен"),
         reply_markup=builder.as_markup()
     )
+    current_orders.pop(callback.from_user.id)
     await callback.answer()

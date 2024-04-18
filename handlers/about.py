@@ -27,7 +27,7 @@ async def about_command_handler(message: Message, state: FSMContext) -> None:
     builder.row(
         InlineKeyboardButton(
             text=emoji.emojize("Отзывы"),
-            callback_data="toReviews"
+            url="https://t.me/CHINA_TOWN_Feedback"
         ),
         InlineKeyboardButton(
             text=emoji.emojize("⬅Назад"),
@@ -56,8 +56,8 @@ async def about_command_handler(callback: CallbackQuery, state: FSMContext) -> N
     )
     builder.row(
         InlineKeyboardButton(
-            text=emoji.emojize("Отзывы"),
-            callback_data="toReviews"
+            text=emoji.emojize("📋Отзывы"),
+            url="https://t.me/CHINA_TOWN_Feedback"
         ),
         InlineKeyboardButton(
             text=emoji.emojize("⬅Назад"),

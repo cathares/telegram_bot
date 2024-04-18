@@ -1,3 +1,5 @@
+import re
+
 import emoji
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -9,9 +11,12 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 
+from db.database import db
 from states import Form
 
 router = Router()
+
+prices = {}
 
 
 # ТУТ НАЧИНАЮТСЯ ХЕНДЛЕРЫ НА КАЛЬКУЛЯТОР
@@ -20,6 +25,7 @@ router = Router()
 @router.message(Command("calc"))
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     await state.set_state(Form.calc)
+    prices.update({message.from_user.id: None})
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
@@ -28,7 +34,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
         )
     )
     await message.answer(
-        "Введите стоимость товара",
+        "Введите стоимость товара в CNY (Китайский Юань):",
         reply_markup=builder.as_markup()
     )
 
@@ -36,6 +42,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "toCalc")
 async def back_to_calc_callback(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Form.calc)
+    prices.update({callback.from_user.id: None})
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
@@ -44,7 +51,7 @@ async def back_to_calc_callback(callback: types.CallbackQuery, state: FSMContext
         )
     )
     await callback.message.answer(
-        "Введите стоимость товара",
+        "Введите стоимость товара в CNY (Китайский Юань):",
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -52,7 +59,8 @@ async def back_to_calc_callback(callback: types.CallbackQuery, state: FSMContext
 
 @router.message(Form.calc)
 async def delivery_handler(message: Message, state: FSMContext) -> None:
-    await state.set_state(Form.calc_delivery)
+    regex = "([0-9]*[.,])?[0-9]+"
+    isDigit = re.findall(regex, message.text)
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
@@ -60,15 +68,42 @@ async def delivery_handler(message: Message, state: FSMContext) -> None:
             callback_data="toCalc"
         )
     )
-    await message.answer(
-        "Выберите доставку:",
-        reply_markup=builder.as_markup()
-    )
+    if isDigit:
+        await state.set_state(Form.calc_delivery)
+        prices[message.from_user.id] = message.text
+        innerBuilder = InlineKeyboardBuilder()
+        innerBuilder.row(
+            InlineKeyboardButton(
+                text="Обычная",
+                callback_data='usual'
+            )
+        )
+        innerBuilder.row(
+            InlineKeyboardButton(
+                text=emoji.emojize("⬅Назад"),
+                callback_data="toCalc"
+            )
+        )
+        await message.answer(
+            "Выберите доставку:",
+            reply_markup=innerBuilder.as_markup()
+        )
+    else:
+        await message.answer(
+            text="Некорректная стоимость. Введите число:",
+            reply_markup=builder.as_markup()
+        )
 
 
-@router.message(Form.calc_delivery)
-async def full_price_handler(message: Message, state: FSMContext) -> None:
+@router.callback_query(Form.calc_delivery)
+async def full_price_handler(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Form.calc_price)
+    cur = db.cursor()
+    rate = (cur.execute(f"SELECT rate FROM prices").fetchone())[0]
+    delivery = (cur.execute(f"SELECT {callback.data + '_delivery'} FROM prices").fetchone())[0]
+    markup = (cur.execute(f"SELECT markup FROM prices").fetchone())[0]
+    cost = int(prices[callback.from_user.id])*int(rate) + int(delivery) + int(markup)
+    prices.pop(callback.from_user.id)
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
@@ -76,33 +111,9 @@ async def full_price_handler(message: Message, state: FSMContext) -> None:
             callback_data="toStart"
         )
     )
-    await message.answer(
-        "Итоговая стоимость:",
-        reply_markup=builder.as_markup()
+    await callback.message.answer(
+        f"Итоговая стоимость: <b>{cost} руб.</b>",
+        reply_markup=builder.as_markup(),
+        parse_mode='HTML'
     )
-
-
-'''
-@dp.callback_query(Form.check, F.data == "edit")
-async def edit(callback: types.CallbackQuery):
-    builder = InlineKeyboardBuilder()
-    builder.add(
-        InlineKeyboardButton(
-            text=emoji.emojize("Артикул"),
-            callback_data="article"
-        ),
-        InlineKeyboardButton(
-            text=emoji.emojize("Размер"),
-            callback_data="edit"
-        ),
-        InlineKeyboardButton(
-            text=emoji.emojize("ФИО"),
-            callback_data="edit"
-        ),
-        InlineKeyboardButton(
-            text=emoji.emojize("Номер телефона"),
-            callback_data="edit"
-        )
-    )
-    await callback.message.answer("Что вы хотите изменить?")
-'''
+    await callback.answer()
