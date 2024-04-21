@@ -70,7 +70,11 @@ async def delivery_handler(message: Message, state: FSMContext) -> None:
     )
     if isDigit:
         await state.set_state(Form.calc_delivery)
-        prices[message.from_user.id] = message.text
+        if re.findall(",", message.text):
+            price = re.sub(",", ".", message.text)
+        else:
+            price = message.text
+        prices[message.from_user.id] = price
         innerBuilder = InlineKeyboardBuilder()
         innerBuilder.row(
             InlineKeyboardButton(
@@ -102,7 +106,7 @@ async def full_price_handler(callback: types.CallbackQuery, state: FSMContext) -
     rate = (cur.execute(f"SELECT rate FROM prices").fetchone())[0]
     delivery = (cur.execute(f"SELECT {callback.data + '_delivery'} FROM prices").fetchone())[0]
     markup = (cur.execute(f"SELECT markup FROM prices").fetchone())[0]
-    cost = int(prices[callback.from_user.id])*int(rate) + int(delivery) + int(markup)
+    cost = round(float(prices[callback.from_user.id])*float(rate) + float(delivery) + float(markup))
     prices.pop(callback.from_user.id)
     builder = InlineKeyboardBuilder()
     builder.row(

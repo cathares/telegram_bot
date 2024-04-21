@@ -1,21 +1,15 @@
 import re
 
-from aiogram import Router, types, F
-from aiogram.fsm.state import StatesGroup, State
+from aiogram import Router, F
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from aiogram.filters import Command, StateFilter, Filter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message,
     InlineKeyboardButton, CallbackQuery,
 )
-import emoji
-
-from handlers.admin import AdminFilter, AdminStates
-from start_bot import bot
-from config import admin_ids, STATUS_LIST
+from handlers.admin_panel.admin_orders import AdminFilter, AdminStates
 from db.database import db
-from states import Form
+
 
 router = Router()
 
@@ -78,8 +72,12 @@ async def change_rate_confirm(message: Message, state: FSMContext):
     regex = "[0-9]*[.,]?[0-9]+"
     isDigit = re.findall(regex, message.text)
     if isDigit:
+        if re.findall(",", message.text):
+            rate = re.sub(",", "..", message.text)
+        else:
+            rate = message.text
         cur = db.cursor()
-        cur.execute(f"UPDATE prices SET rate = '{message.text}'")
+        cur.execute(f"UPDATE prices SET rate = '{rate}'")
         db.commit()
         cur.close()
         builder = InlineKeyboardBuilder()
@@ -90,7 +88,7 @@ async def change_rate_confirm(message: Message, state: FSMContext):
             )
         )
         await message.answer(
-            text=f"Установлен новый курс - {message.text} руб.",
+            text=f"Установлен новый курс - {rate} руб.",
             reply_markup=builder.as_markup()
         )
         await state.clear()
@@ -126,8 +124,12 @@ async def change_rate_confirm(message: Message, state: FSMContext):
     regex = "[0-9]*[.,]?[0-9]+"
     isDigit = re.findall(regex, message.text)
     if isDigit:
+        if re.findall(",", message.text):
+            markup = re.sub(",", "..", message.text)
+        else:
+            markup = message.text
         cur = db.cursor()
-        cur.execute(f"UPDATE prices SET markup = '{message.text}'")
+        cur.execute(f"UPDATE prices SET markup = '{markup}'")
         db.commit()
         cur.close()
         builder = InlineKeyboardBuilder()
@@ -138,7 +140,7 @@ async def change_rate_confirm(message: Message, state: FSMContext):
             )
         )
         await message.answer(
-            text=f"Установлено новое значение наценки - {message.text} руб.",
+            text=f"Установлено новое значение наценки - {markup} руб.",
             reply_markup=builder.as_markup()
         )
         await state.clear()
@@ -195,8 +197,12 @@ async def confirm_usual_delivery(message: Message, state: FSMContext):
     regex = "[0-9]*[.,]?[0-9]+"
     isDigit = re.findall(regex, message.text)
     if isDigit:
+        if re.findall(",", message.text):
+            delivery = re.sub(",", "..", message.text)
+        else:
+            delivery = message.text
         cur = db.cursor()
-        cur.execute(f"UPDATE prices SET usual_delivery = '{message.text}'")
+        cur.execute(f"UPDATE prices SET usual_delivery = '{delivery}'")
         db.commit()
         cur.close()
         builder = InlineKeyboardBuilder()
@@ -207,7 +213,7 @@ async def confirm_usual_delivery(message: Message, state: FSMContext):
             )
         )
         await message.answer(
-            text=f"Установлена новая стоимость обычной доставки - {message.text} руб.",
+            text=f"Установлена новая стоимость обычной доставки - {delivery} руб.",
             reply_markup=builder.as_markup()
         )
         await state.clear()

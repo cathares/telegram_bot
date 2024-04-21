@@ -13,9 +13,12 @@ from db.database import db
 
 import emoji
 
+from start_bot import bot
 from states import Form
 
 router = Router()
+
+data_dict = {}
 
 
 @router.callback_query(F.data == "toOrderList")
@@ -86,8 +89,6 @@ async def orderlist_callback(callback: CallbackQuery, state: FSMContext) -> None
     data = cur.execute(
         f"SELECT * FROM orders WHERE user_id == {callback.from_user.id} AND status == '{callback.data}' ").fetchall()
     cur.close()
-    print(type(data))
-    print(data)
     builder = InlineKeyboardBuilder()
     builder.row(
         InlineKeyboardButton(
@@ -101,19 +102,73 @@ async def orderlist_callback(callback: CallbackQuery, state: FSMContext) -> None
             reply_markup=builder.as_markup()
         )
     else:
-        await callback.message.answer(
-            text="<b>Ваши заказы\n\n</b>" + '\n'.join(emoji.emojize(f"<b>Номер заказа: {data[i][0]}</b>"
-                                                                    f"\n🛒Артикул: {data[i][3]} "
-                                                                    f"\n📐Размер:"f" {data[i][4]}"
-                                                                    f"\n👥ФИО:"f" {data[i][5]}"
-                                                                    f"\n☎Номер телефона: {data[i][6]}"
-                                                                    f"\n🚛Адрес СДЕКа: {data[i][7]}"
-                                                                    f"\n🏷Промокод: {data[i][8] if data[i][8] is not None else ''}"
-                                                                    f"\n🕐Статус заказа: {STATUS_LIST[data[i][9]]}\n")
-                                                      for i in
-                                                      range(0, len(data))),
-            parse_mode='HTML',
-            reply_markup=builder.as_markup()
-        )
+        for i in range(0, len(data)):
+            if STATUS_LIST[data[i][9]] == 'В обработке':
+                builder = InlineKeyboardBuilder()
+                builder.row(
+                    InlineKeyboardButton(
+                        text="Отменить заказ",
+                        callback_data=f"delete_order_{data[i][0]}"
+                    )
+                )
+                await callback.message.answer(
+                    text=emoji.emojize(f"<b>Номер заказа: {data[i][0]}</b>"
+                                       f"\n🛒Артикул: {data[i][3]} "
+                                       f"\n📐Размер:"f" {data[i][4]}"
+                                       f"\n👥ФИО:"f" {data[i][5]}"
+                                       f"\n☎Номер телефона: {data[i][6]}"
+                                       f"\n🚛Адрес СДЭКа: {data[i][7]}"
+                                       f"\n🏷Промокод: {data[i][8] if data[i][8] is not None else ''}"
+                                       f"\n🕐Статус заказа: {STATUS_LIST[data[i][9]]}\n"),
+                    parse_mode='HTML',
+                    reply_markup=builder.as_markup()
+                )
+            else:
+                await callback.message.answer(
+                    text=emoji.emojize(f"<b>Номер заказа: {data[i][0]}</b>"
+                                       f"\n🛒Артикул: {data[i][3]} "
+                                       f"\n📐Размер:"f" {data[i][4]}"
+                                       f"\n👥ФИО:"f" {data[i][5]}"
+                                       f"\n☎Номер телефона: {data[i][6]}"
+                                       f"\n🚛Адрес СДЭКа: {data[i][7]}"
+                                       f"\n🏷Промокод: {data[i][8] if data[i][8] is not None else ''}"
+                                       f"\n🕐Статус заказа: {STATUS_LIST[data[i][9]]}\n"),
+                    parse_mode='HTML')
     await callback.answer()
 
+
+@router.callback_query(F.data.startswith("delete_order_"))
+async def delete_order(callback: CallbackQuery):
+    order_id = callback.data[13:]
+    cur = db.cursor()
+    data = cur.execute(f"SELECT * FROM orders WHERE order_id == {order_id}").fetchall()
+    cur.execute(f"UPDATE orders SET status = 'canceled' WHERE order_id == {order_id}")
+    if data[0][10] is not None:
+        admin = data[0][10]
+    else:
+        admin = ""
+    db.commit()
+    cur.close()
+    await callback.message.answer(
+        text="Заказ отменён.",
+    )
+    await callback.message.delete()
+    await callback.answer()
+    await bot.send_message(
+        chat_id=-4168941250,
+        reply_to_message_id=int(data[0][11]),
+        text=f"Заказ {order_id} отменён пользователем."
+    )
+    await bot.send_message(
+        chat_id=-4150560440,
+        text=emoji.emojize(f"Заказ отменён пользователем."
+                           f"\n<b>Номер заказа: {data[0][0]}</b>"
+                           f"\nПользователь: {data[0][2]}"
+                           f"\n🛒Артикул: {data[0][3]} "
+                           f"\n📐Размер:"f" {data[0][4]}"
+                           f"\n👥ФИО:"f" {data[0][5]}"
+                           f"\n☎Номер телефона: {data[0][6]}"
+                           f"\n🚛Адрес СДЭКа: {data[0][7]}"
+                           f"\n🏷Промокод: {data[0][8] if data[0][8] is not None else ''}"
+                           f"\n🕐Статус заказа: Отменён\n"),
+        parse_mode='HTML')

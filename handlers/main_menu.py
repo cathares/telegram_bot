@@ -43,14 +43,14 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     if message.from_user.id in admin_ids:
         builder.row(InlineKeyboardButton(text=emoji.emojize("Панель администратора"), callback_data="admin"))
     await message.answer_photo(
-        photo=FSInputFile("content/pic.jpg"),
+        photo=FSInputFile("content/botpic.png"),
         caption=f"<b>Вас приветствует CHINA TOWN!\nПоддержка - @CHINA_TOWN_ADMIN</b>",
         parse_mode='HTML',
         reply_markup=builder.as_markup()
     )
 
 
-@router.callback_query(StateFilter(Form.article, Form.check, Form.calc, None, Form), F.data.in_({"toStart", "cancel"}))
+@router.callback_query(F.data.in_({"toStart", "cancel"}))
 async def back_to_start_callback(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Form.main_menu)
     builder = InlineKeyboardBuilder()
@@ -69,7 +69,7 @@ async def back_to_start_callback(callback: types.CallbackQuery, state: FSMContex
     if callback.from_user.id in admin_ids:
         builder.row(InlineKeyboardButton(text=emoji.emojize("Панель администратора"), callback_data="admin"))
     await callback.message.answer_photo(
-        photo=FSInputFile("content/pic.jpg"),
+        photo=FSInputFile("content/botpic.png"),
         caption=f"<b>Вас приветствует CHINA TOWN!\nПоддержка - @CHINA_TOWN_ADMIN</b>",
         parse_mode='HTML',
         reply_markup=builder.as_markup()

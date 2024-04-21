@@ -44,7 +44,7 @@ async def new_order_handler(message: Message, state: FSMContext) -> None:
     )
 
 
-@router.callback_query(StateFilter(Form.size, Form.main_menu), F.data == "toArticle")
+@router.callback_query(F.data == "toArticle")
 async def back_to_article_callback(callback: types.CallbackQuery, state: FSMContext) -> None:
     await state.set_state(Form.article)
     current_orders.update(
@@ -85,7 +85,7 @@ async def sizeHandler(message: Message, state: FSMContext) -> None:
         )
     )
     await message.answer(
-        emoji.emojize("📐Ввведите размер:"),
+        emoji.emojize("📐Введите размер:"),
         reply_markup=builder.as_markup()
     )
 
@@ -101,7 +101,7 @@ async def back_to_size_callback(callback: types.CallbackQuery, state: FSMContext
         )
     )
     await callback.message.answer(
-        emoji.emojize("📐Ввведите размер:"),
+        emoji.emojize("📐Введите размер:"),
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -119,7 +119,7 @@ async def name_handler(message: Message, state: FSMContext) -> None:
         )
     )
     await message.answer(
-        emoji.emojize("🪪Ввведите ФИО:"),
+        emoji.emojize("🪪Введите ФИО:"),
         reply_markup=builder.as_markup()
     )
 
@@ -135,7 +135,7 @@ async def back_to_name_callback(callback: types.CallbackQuery, state: FSMContext
         )
     )
     await callback.message.answer(
-        emoji.emojize("🪪Ввведите ФИО:"),
+        emoji.emojize("🪪Введите ФИО:"),
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -153,7 +153,7 @@ async def number_handler(message: Message, state: FSMContext) -> None:
         )
     )
     await message.answer(
-        emoji.emojize("☎Ввведите номер телефона:"),
+        emoji.emojize("☎Введите номер телефона:"),
         reply_markup=builder.as_markup()
     )
 
@@ -169,7 +169,7 @@ async def back_to_number_callback(callback: types.CallbackQuery, state: FSMConte
         )
     )
     await callback.message.answer(
-        emoji.emojize("☎Ввведите номер телефона:"),
+        emoji.emojize("☎Введите номер телефона:"),
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -187,7 +187,7 @@ async def address_handler(message: Message, state: FSMContext) -> None:
         )
     )
     await message.answer(
-        emoji.emojize("🚛Ввведите адрес СДЕКа:"),
+        emoji.emojize("🚛Введите адрес СДЭКа:"),
         reply_markup=builder.as_markup()
     )
 
@@ -203,7 +203,7 @@ async def back_to_address_callback(callback: types.CallbackQuery, state: FSMCont
         )
     )
     await callback.message.answer(
-        emoji.emojize("🚛Ввведите адрес СДЕКа:"),
+        emoji.emojize("🚛Введите адрес СДЭКа:"),
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -227,7 +227,7 @@ async def code_handler(message: Message, state: FSMContext) -> None:
         )
     )
     await message.answer(
-        text=emoji.emojize("🏷Ввведите промокод:"),
+        text=emoji.emojize("🏷Введите промокод:"),
         reply_markup=builder.as_markup()
     )
 
@@ -249,7 +249,7 @@ async def back_to_code_callback(callback: types.CallbackQuery, state: FSMContext
         )
     )
     await callback.message.answer(
-        text=emoji.emojize("🏷Ввведите промокод:"),
+        text=emoji.emojize("🏷Введите промокод:"),
         reply_markup=builder.as_markup()
     )
     await callback.answer()
@@ -258,35 +258,54 @@ async def back_to_code_callback(callback: types.CallbackQuery, state: FSMContext
 @router.message(Form.code)
 async def check_form(message: Message, state: FSMContext) -> None:
     current_orders[message.from_user.id]['code'] = message.text
-    await state.set_state(Form.check)
-    builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(
-            text=emoji.emojize(":check_mark_button:Подтвердить заказ"),
-            callback_data="accept"
+    cur = db.cursor()
+    quantity = cur.execute(f"SELECT quantity FROM promo WHERE text == '{message.text}'").fetchone()
+    if quantity and int(quantity[0]) < 1:
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(
+                text=emoji.emojize("➡Пропустить"),
+                callback_data="toCheck"
+            )
         )
-    )
-    builder.row(
-        InlineKeyboardButton(
-            text=emoji.emojize(":cross_mark:Отменить заказ"),
-            callback_data="cancel"
-        ),
-        InlineKeyboardButton(
-            text=emoji.emojize("⬅Назад"),
-            callback_data="toCode"
+        builder.row(
+            InlineKeyboardButton(
+                text=emoji.emojize("⬅Назад"),
+                callback_data="toAddress"
+            )
         )
-    )
-    await message.answer(
-        emoji.emojize(f"<b>Проверьте правильность введенных данных:</b>"
-                      f"\n🛒Артикул: {current_orders[message.from_user.id]['article']} "
-                      f"\n📐Размер:"f" {current_orders[message.from_user.id]['size']}"
-                      f"\n👥ФИО:"f" {current_orders[message.from_user.id]['name']}"
-                      f"\n☎Номер телефона: {current_orders[message.from_user.id]['number']}"
-                      f"\n🚛Адрес СДЕКа: {current_orders[message.from_user.id]['address']}"
-                      f"\n🏷Промокод: {current_orders[message.from_user.id]['code']}"),
-        parse_mode='HTML',
-        reply_markup=builder.as_markup()
-    )
+        await message.answer("Количество использований промокода закончилось. Попробуйте другой промокод:",
+                             reply_markup=builder.as_markup())
+    else:
+        await state.set_state(Form.check)
+        builder = InlineKeyboardBuilder()
+        builder.row(
+            InlineKeyboardButton(
+                text=emoji.emojize(":check_mark_button:Подтвердить заказ"),
+                callback_data="accept"
+            )
+        )
+        builder.row(
+            InlineKeyboardButton(
+                text=emoji.emojize(":cross_mark:Отменить заказ"),
+                callback_data="cancel"
+            ),
+            InlineKeyboardButton(
+                text=emoji.emojize("⬅Назад"),
+                callback_data="toCode"
+            )
+        )
+        await message.answer(
+            emoji.emojize(f"<b>Проверьте правильность введенных данных:</b>"
+                          f"\n🛒Артикул: {current_orders[message.from_user.id]['article']} "
+                          f"\n📐Размер:"f" {current_orders[message.from_user.id]['size']}"
+                          f"\n🪪ФИО:"f" {current_orders[message.from_user.id]['name']}"
+                          f"\n☎Номер телефона: {current_orders[message.from_user.id]['number']}"
+                          f"\n🚛Адрес СДЭКа: {current_orders[message.from_user.id]['address']}"
+                          f"\n🏷Промокод: {current_orders[message.from_user.id]['code']}"),
+            parse_mode='HTML',
+            reply_markup=builder.as_markup()
+        )
 
 
 @router.callback_query(Form.code, F.data == "toCheck")
@@ -314,9 +333,9 @@ async def skip_to_check_form(callback: types.CallbackQuery, state: FSMContext) -
         emoji.emojize(f"<b>Проверьте правильность введенных данных</b>:"
                       f"\n🛒Артикул: {current_orders[callback.from_user.id]['article']} "
                       f"\n📐Размер:"f" {current_orders[callback.from_user.id]['size']}"
-                      f"\n👥ФИО:"f" {current_orders[callback.from_user.id]['name']}"
+                      f"\n🪪ФИО:"f" {current_orders[callback.from_user.id]['name']}"
                       f"\n☎Номер телефона: {current_orders[callback.from_user.id]['number']}"
-                      f"\n🚛Адрес СДЕКа: {current_orders[callback.from_user.id]['address']}"
+                      f"\n🚛Адрес СДЭКа: {current_orders[callback.from_user.id]['address']}"
                       ),
         reply_markup=builder.as_markup(),
         parse_mode='HTML'
@@ -328,6 +347,10 @@ async def skip_to_check_form(callback: types.CallbackQuery, state: FSMContext) -
 @router.callback_query(Form.check, F.data == "accept")
 async def accept(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
+    if callback.from_user.username is not None:
+        username = '@' + callback.from_user.username
+    else:
+        username = callback.from_user.first_name
     cur = db.cursor()
     cur.execute(f"INSERT INTO orders (user_id, username, article, size, name, phone_number, address, promocode, status)"
                 f"VALUES (?,?,?,?,?,?,?,?,?)", (
@@ -342,8 +365,15 @@ async def accept(callback: types.CallbackQuery, state: FSMContext):
                     "accepted"
                 )
                 )
+    quantity = cur.execute(
+        f"SELECT quantity FROM promo WHERE text ='{current_orders[callback.from_user.id]['code']}'").fetchone()
+    if quantity and int(quantity[0]) >= 1:
+        quantity = int(quantity[0]) - 1
+        cur.execute(
+            f"UPDATE promo SET quantity = '{quantity}' WHERE text == '{current_orders[callback.from_user.id]['code']}'")
     db.commit()
-    num = cur.execute(f"SELECT order_id FROM orders WHERE user_id == {callback.from_user.id} ORDER BY order_id DESC").fetchone()[0]
+    num = cur.execute(
+        f"SELECT order_id FROM orders WHERE user_id == {callback.from_user.id} ORDER BY order_id DESC").fetchone()[0]
     cur.close()
     builder = InlineKeyboardBuilder()
     builder.add(
@@ -359,10 +389,7 @@ async def accept(callback: types.CallbackQuery, state: FSMContext):
             callback_data=f"admin_order_{num}"
         )
     )
-    if callback.from_user.username is not None:
-        username = '@' + callback.from_user.username
-    else:
-        username = callback.from_user.first_name
+    print(callback.from_user.username)
     await bot.send_message(
         chat_id=-4168941250,
         text=emoji.emojize(f"<b>Поступил новый заказ:</b>"
@@ -370,9 +397,9 @@ async def accept(callback: types.CallbackQuery, state: FSMContext):
                            f"Имя пользователя: {username}"
                            f"\n🛒Артикул: {current_orders[callback.from_user.id]['article']} "
                            f"\n📐Размер:"f" {current_orders[callback.from_user.id]['size']}"
-                           f"\n👥ФИО:"f" {current_orders[callback.from_user.id]['name']}"
+                           f"\n🪪ФИО:"f" {current_orders[callback.from_user.id]['name']}"
                            f"\n☎Номер телефона: {current_orders[callback.from_user.id]['number']}"
-                           f"\n🚛Адрес СДЕКа: {current_orders[callback.from_user.id]['address']}" +
+                           f"\n🚛Адрес СДЭКа: {current_orders[callback.from_user.id]['address']}" +
                            f"\n🏷Промокод: {current_orders[callback.from_user.id]['code']}"
                            ),
         reply_markup=admin_msg_builder.as_markup(),
